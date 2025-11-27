@@ -15,12 +15,18 @@
 : ${ZVM_MAN_PAGER:=less}
 
 function zvm-man() {
-  local cmd="${BUFFER%%[[:space:]]*}"
-  
   # Get the word at cursor position
   local left="${LBUFFER##*[[:space:]]}"
   local right="${RBUFFER%%[[:space:]]*}"
   local word="${left}${right}"
+  
+  # Find the current command segment (handles pipes: tree | grep -A)
+  # Get everything after the last pipe before cursor
+  local current_segment="${LBUFFER##*|}"
+  # Trim leading whitespace
+  current_segment="${current_segment#"${current_segment%%[![:space:]]*}"}"
+  # Extract the command (first word of segment)
+  local cmd="${current_segment%%[[:space:]]*}"
   
   if [[ -z "$cmd" ]]; then
     zle -M "No command found"
@@ -29,7 +35,7 @@ function zvm-man() {
   
   # Determine the man page to open
   local man_page="$cmd"
-  local rest="${BUFFER#*[[:space:]]}"
+  local rest="${current_segment#*[[:space:]]}"
   local potential_subcommand="${rest%%[[:space:]]*}"
   
   # Check for subcommand man pages (e.g., git-commit, docker-run)
@@ -40,21 +46,27 @@ function zvm-man() {
   fi
   
   # Build the search pattern for the current word
+  # Patterns match option definitions: lines starting with whitespace then dash
+  # Supports comma-separated (GNU style) and slash-separated (jq style) options
   local pattern=""
   if [[ -n "$word" ]]; then
     # Long option with value: --color=always -> search for --color
     if [[ "$word" =~ ^--[^=]+= ]]; then
-      pattern="${word%%=*}"
+      local opt="${word%%=*}"
+      pattern="^[[:space:]]*${opt}([,/=:[[:space:]]|$)|^[[:space:]]*-.*[,/][[:space:]]+${opt}([,/=:[[:space:]]|$)"
     # Combined short options: -rf -> search for -[rf] to find individual options
+    # Also includes fallback for single-dash long options like find's -name, -type
     elif [[ "$word" =~ ^-[a-zA-Z]{2,}$ ]]; then
       local chars="${word:1}"
-      pattern="-[${chars}]"
-    # Single short option: -r -> search with comma prefix or start of line
+      # Pattern 1: individual chars (e.g., -r or -f from -rf)
+      # Pattern 2: the full word as-is (e.g., -name for find)
+      pattern="^[[:space:]]*-[${chars}][,/:[:space:]]|^[[:space:]]*-.*[,/][[:space:]]+-[${chars}][,/:[:space:]]|^[[:space:]]*${word}([,/:[:space:]]|$)|^[[:space:]]*-.*[,/][[:space:]]+${word}([,/:[:space:]]|$)"
+    # Single short option: -r -> match at start of option definition line
     elif [[ "$word" =~ ^-[a-zA-Z]$ ]]; then
-      pattern=", ${word}|^[[:space:]]+${word}"
+      pattern="^[[:space:]]*${word}[,/:[:space:]]|^[[:space:]]*-.*[,/][[:space:]]+${word}([,/:[:space:]]|$)"
     # Long option without value: --recursive
     elif [[ "$word" =~ ^-- ]]; then
-      pattern="${word}"
+      pattern="^[[:space:]]*${word}([,/=:[[:space:]]|$)|^[[:space:]]*-.*[,/][[:space:]]+${word}([,/=:[[:space:]]|$)"
     fi
   fi
   
