@@ -2,9 +2,9 @@
 
 # 📖 zsh-vi-man
 
-**Smart man page lookup for zsh vi mode**
+**Smart man page lookup for zsh vi mode (now with emacs mode support!)**
 
-Press `Shift-K` on any command or option to instantly open its man page
+Press `K` (vi normal mode), `Ctrl-X k` (emacs mode), or `Ctrl-K` (vi insert mode) on any command or option to instantly open its man page
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Zsh](https://img.shields.io/badge/Shell-Zsh-green.svg)](https://www.zsh.org/)
@@ -156,10 +156,18 @@ echo 'source ~/.zsh-vi-man/zsh-vi-man.plugin.zsh' >> ~/.zshrc
 
 ## 🚀 Usage
 
+### Vi Normal Mode (Default)
+
 1. Type a command (e.g., `ls -la` or `git commit --amend`)
 2. Press `Escape` to enter vi normal mode
 3. Move cursor to any word
 4. Press **`K`** to open the man page
+
+### Emacs Mode / Vi Insert Mode
+
+Without leaving insert mode or if using emacs mode:
+- **Emacs mode**: Press **`Ctrl-X`** then **`k`**
+- **Vi insert mode**: Press **`Ctrl-K`**
 
 <br>
 
@@ -181,12 +189,60 @@ echo 'source ~/.zsh-vi-man/zsh-vi-man.plugin.zsh' >> ~/.zshrc
 Set these variables **before** sourcing the plugin:
 
 ```zsh
-# Change the trigger key (default: K)
+# Vi normal mode key (default: K)
 ZVM_MAN_KEY='?'
+
+# Emacs mode key sequence (default: ^Xk, i.e., Ctrl-X k)
+ZVM_MAN_KEY_EMACS='^X^K'  # Example: Ctrl-X Ctrl-K
+
+# Vi insert mode key (default: ^K, i.e., Ctrl-K)
+ZVM_MAN_KEY_INSERT='^H'   # Example: Ctrl-H
+
+# Enable/disable emacs mode binding (default: true)
+ZVM_MAN_ENABLE_EMACS=false
+
+# Enable/disable vi insert mode binding (default: true)
+ZVM_MAN_ENABLE_INSERT=false
 
 # Use a different pager (default: less)
 ZVM_MAN_PAGER='bat'
 ```
+
+### Troubleshooting
+
+**Keybindings not working?**
+
+If keybindings don't work after sourcing the plugin, try running:
+
+```zsh
+zvm_man_rebind
+```
+
+This can happen if:
+- Your plugin manager loads plugins before setting up keymaps
+- You call `bindkey -e` or `bindkey -v` after the plugin loads
+- Another plugin resets your keybindings
+
+**For persistent issues**, add this to your `.zshrc` **after** sourcing the plugin:
+
+```zsh
+# Ensure zsh-vi-man bindings are set
+zvm_man_rebind
+```
+
+<details>
+<summary><b>Key Binding Examples</b></summary>
+
+| Key Notation | Description |
+|:-------------|:------------|
+| `^K` | Ctrl-K |
+| `^Xk` | Ctrl-X then k |
+| `^X^K` | Ctrl-X then Ctrl-K |
+| `\ek` | Alt-k (or Escape then k) |
+
+For special keys, use zsh notation: `^[` for Escape, `^?` for Backspace, etc.
+
+</details>
 
 <br>
 

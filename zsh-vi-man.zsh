@@ -1,18 +1,26 @@
-# zsh-vi-man.zsh -- Smart man page viewer for zsh vi mode
+# zsh-vi-man.zsh -- Smart man page viewer for zsh
 # https://github.com/TunaCuma/zsh-vi-man
 #
-# Press K in vi normal mode to open the man page for the current command.
-# If your cursor is on an option (like -r or --recursive), it will jump
-# directly to that option in the man page.
+# Press K in vi normal mode, Ctrl-X k in emacs mode, or Ctrl-K in vi insert mode
+# to open the man page for the current command. If your cursor is on an option
+# (like -r or --recursive), it will jump directly to that option in the man page.
 #
 # MIT License - Copyright (c) 2025 Tuna Cuma
 
 # Configuration variables (can be set before sourcing)
-# ZVM_MAN_KEY: the key to trigger man page lookup (default: K)
+# ZVM_MAN_KEY: the key to trigger man page lookup in vi normal mode (default: K)
+# ZVM_MAN_KEY_EMACS: the key sequence for emacs mode (default: ^Xk, i.e., Ctrl-X k)
+# ZVM_MAN_KEY_INSERT: the key for vi insert mode (default: ^K, i.e., Ctrl-K)
 # ZVM_MAN_PAGER: the pager to use (default: less)
+# ZVM_MAN_ENABLE_EMACS: enable emacs mode binding (default: true)
+# ZVM_MAN_ENABLE_INSERT: enable vi insert mode binding (default: true)
 
 : ${ZVM_MAN_KEY:=K}
+: ${ZVM_MAN_KEY_EMACS:='^Xk'}
+: ${ZVM_MAN_KEY_INSERT:='^K'}
 : ${ZVM_MAN_PAGER:=less}
+: ${ZVM_MAN_ENABLE_EMACS:=true}
+: ${ZVM_MAN_ENABLE_INSERT:=true}
 
 function zvm-man() {
   # Get the word at cursor position
@@ -87,7 +95,30 @@ function zvm-man() {
 zle -N zvm-man
 
 function _zvm_man_bind_key() {
-  bindkey -M vicmd "${ZVM_MAN_KEY}" zvm-man
+  # Bind in vi normal mode (always enabled)
+  bindkey -M vicmd "${ZVM_MAN_KEY}" zvm-man 2>/dev/null
+  
+  # Handle emacs mode binding
+  if [[ "${ZVM_MAN_ENABLE_EMACS}" == true ]]; then
+    bindkey -M emacs "${ZVM_MAN_KEY_EMACS}" zvm-man 2>/dev/null
+  else
+    # Remove existing binding if disabled
+    bindkey -M emacs -r "${ZVM_MAN_KEY_EMACS}" 2>/dev/null
+  fi
+  
+  # Handle vi insert mode binding
+  if [[ "${ZVM_MAN_ENABLE_INSERT}" == true ]]; then
+    bindkey -M viins "${ZVM_MAN_KEY_INSERT}" zvm-man 2>/dev/null
+  else
+    # Remove existing binding if disabled
+    bindkey -M viins -r "${ZVM_MAN_KEY_INSERT}" 2>/dev/null
+  fi
+}
+
+# Expose function so users can manually rebind if needed
+# Usage: zvm_man_rebind (if keybindings don't work after sourcing)
+function zvm_man_rebind() {
+  _zvm_man_bind_key
 }
 
 # Support both immediate binding and lazy loading with zsh-vi-mode
@@ -102,7 +133,7 @@ elif (( ${+functions[zvm_after_init]} )); then
   # zsh-vi-mode without lazy keybindings
   zvm_after_init_commands+=(_zvm_man_bind_key)
 else
-  # Standalone or other vi-mode setups
+  # Standalone or other vi-mode setups - bind immediately
   _zvm_man_bind_key
 fi
 
