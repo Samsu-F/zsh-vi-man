@@ -19,6 +19,7 @@ Fixes #
 - [ ] Tested manually
 
 Test environment:
+
 - Zsh version:
 - OS:
 
@@ -28,4 +29,3 @@ Test environment:
 - [ ] Self-reviewed
 - [ ] Tests pass
 - [ ] Documentation updated (if needed)
-
