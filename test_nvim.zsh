@@ -317,6 +317,12 @@ assert_vim_no_match "-l" \
   "     -n      Display user and group IDs numerically rather than converting to a user or group name in a long (-l) output." \
   "-l: parenthetical mention in -n description should not match"
 
+# User's original bug report: ls -f description mentions -d, -l, -R (should NOT match -l)
+# This was matching because the old pattern "-.*[,/]" was too greedy
+assert_vim_no_match "-l" \
+  "     -f      Output is not sorted.  This option turns on -a.  It also negates the effect of the -r, -S and -t options.  As allowed by IEEE Std 1003.1-2008 (\"POSIX.1\"), this option has no effect on the -d, -l, -R and -s options." \
+  "-l: ls -f description mentioning -d, -l, -R should not match (original bug report)"
+
 echo
 
 # ============================================

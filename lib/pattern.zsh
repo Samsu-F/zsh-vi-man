@@ -16,25 +16,30 @@ zvm_build_less_pattern() {
   fi
   
   # Long option with value: --color=always -> search for --color
+  # Use -[^[:space:],/]* instead of -.* to prevent matching across descriptions
+  # Use (-[^[:space:],/]*[,/][[:space:]]+)* to allow multiple preceding options
   if [[ "$word" =~ ^--[^=]+= ]]; then
     local opt="${word%%=*}"
-    pattern="^[[:space:]]*${opt}([,/=:[[:space:]]|$)|^[[:space:]]*-.*[,/][[:space:]]+${opt}([,/=:[[:space:]]|$)"
+    pattern="^[[:space:]]*${opt}([,/=:[[:space:]]|$)|^[[:space:]]*(-[^[:space:],/]*[,/][[:space:]]+)+${opt}([,/=:[[:space:]]|$)"
   
   # Combined short options: -rf -> search for -[rf] to find individual options
   # Also includes fallback for single-dash long options like find's -name, -type
+  # Use (-[^[:space:],/]*[,/][[:space:]]+)+ to allow multiple preceding options
   elif [[ "$word" =~ ^-[a-zA-Z]{2,}$ ]]; then
     local chars="${word:1}"
     # Pattern 1: individual chars (e.g., -r or -f from -rf)
     # Pattern 2: the full word as-is (e.g., -name for find)
-    pattern="^[[:space:]]*-[${chars}][,/:[:space:]]|^[[:space:]]*-.*[,/][[:space:]]+-[${chars}][,/:[:space:]]|^[[:space:]]*${word}([,/:[:space:]]|$)|^[[:space:]]*-.*[,/][[:space:]]+${word}([,/:[:space:]]|$)"
+    pattern="^[[:space:]]*-[${chars}][,/:[:space:]]|^[[:space:]]*(-[^[:space:],/]*[,/][[:space:]]+)+-[${chars}][,/:[:space:]]|^[[:space:]]*${word}([,/:[:space:]]|$)|^[[:space:]]*(-[^[:space:],/]*[,/][[:space:]]+)+${word}([,/:[:space:]]|$)"
   
   # Single short option: -r -> match at start of option definition line
+  # Use (-[^[:space:],/]*[,/][[:space:]]+)+ to allow multiple preceding options
   elif [[ "$word" =~ ^-[a-zA-Z]$ ]]; then
-    pattern="^[[:space:]]*${word}[,/:[:space:]]|^[[:space:]]*-.*[,/][[:space:]]+${word}([,/:[:space:]]|$)"
+    pattern="^[[:space:]]*${word}[,/:[:space:]]|^[[:space:]]*(-[^[:space:],/]*[,/][[:space:]]+)+${word}([,/:[:space:]]|$)"
   
   # Long option without value: --recursive
+  # Use (-[^[:space:],/]*[,/][[:space:]]+)+ to allow multiple preceding options
   elif [[ "$word" =~ ^-- ]]; then
-    pattern="^[[:space:]]*${word}([,/=:[[:space:]]|$)|^[[:space:]]*-.*[,/][[:space:]]+${word}([,/=:[[:space:]]|$)"
+    pattern="^[[:space:]]*${word}([,/=:[[:space:]]|$)|^[[:space:]]*(-[^[:space:],/]*[,/][[:space:]]+)+${word}([,/=:[[:space:]]|$)"
   fi
   
   echo "$pattern"
@@ -58,12 +63,14 @@ zvm_build_nvim_pattern() {
   # Long option with value: --color=always -> search for --color
   # Match: at line start OR after comma/slash separator
   # End: followed by delimiter (comma, slash, equals, colon, space) or EOL
+  # Use \(-[^[:space:],/]*[,/][[:space:]]*\)\+ to allow multiple preceding options
   if [[ "$word" =~ ^--[^=]+= ]]; then
     local opt="${word%%=*}"
-    search_term="^[[:space:]]*${opt}\\([,/=:[[:space:]]\\|$\\)\\|^[[:space:]]*-.*[,/][[:space:]]*${opt}\\([,/=:[[:space:]]\\|$\\)"
+    search_term="^[[:space:]]*${opt}\\([,/=:[[:space:]]\\|$\\)\\|^[[:space:]]*\\(-[^[:space:],/]*[,/][[:space:]]*\\)\\+${opt}\\([,/=:[[:space:]]\\|$\\)"
   
   # Combined short options: -la -> search for -l or -a
   # Also includes the full word as fallback for find-style -name, -type
+  # Use \(-[^[:space:],/]*[,/][[:space:]]*\)\+ to allow multiple preceding options
   elif [[ "$word" =~ ^-[a-zA-Z]{2,}$ ]]; then
     local chars="${word:1}"
     local alternation=""
@@ -71,26 +78,28 @@ zvm_build_nvim_pattern() {
     for (( i=0; i<${#chars}; i++ )); do
       local char="-${chars:$i:1}"
       if [[ -n "$alternation" ]]; then
-        alternation="${alternation}\\|^[[:space:]]*${char}[,/:[:space:]]\\|^[[:space:]]*-.*[,/][[:space:]]*${char}\\([,/:[:space:]]\\|$\\)"
+        alternation="${alternation}\\|^[[:space:]]*${char}[,/:[:space:]]\\|^[[:space:]]*\\(-[^[:space:],/]*[,/][[:space:]]*\\)\\+${char}\\([,/:[:space:]]\\|$\\)"
       else
-        alternation="^[[:space:]]*${char}[,/:[:space:]]\\|^[[:space:]]*-.*[,/][[:space:]]*${char}\\([,/:[:space:]]\\|$\\)"
+        alternation="^[[:space:]]*${char}[,/:[:space:]]\\|^[[:space:]]*\\(-[^[:space:],/]*[,/][[:space:]]*\\)\\+${char}\\([,/:[:space:]]\\|$\\)"
       fi
     done
     # Add full word as fallback (for find-style -name, -exec, etc.)
-    alternation="${alternation}\\|^[[:space:]]*${word}\\([,/:[:space:]]\\|$\\)\\|^[[:space:]]*-.*[,/][[:space:]]*${word}\\([,/:[:space:]]\\|$\\)"
+    alternation="${alternation}\\|^[[:space:]]*${word}\\([,/:[:space:]]\\|$\\)\\|^[[:space:]]*\\(-[^[:space:],/]*[,/][[:space:]]*\\)\\+${word}\\([,/:[:space:]]\\|$\\)"
     search_term="${alternation}"
   
   # Single short option: -r
   # Match: at line start OR after comma/slash separator
   # End: followed by delimiter or EOL
+  # Use \(-[^[:space:],/]*[,/][[:space:]]*\)\+ to allow multiple preceding options
   elif [[ "$word" =~ ^-[a-zA-Z]$ ]]; then
-    search_term="^[[:space:]]*${word}[,/:[:space:]]\\|^[[:space:]]*-.*[,/][[:space:]]*${word}\\([,/:[:space:]]\\|$\\)"
+    search_term="^[[:space:]]*${word}[,/:[:space:]]\\|^[[:space:]]*\\(-[^[:space:],/]*[,/][[:space:]]*\\)\\+${word}\\([,/:[:space:]]\\|$\\)"
   
   # Long option without value: --recursive
   # Match: at line start OR after comma/slash separator
   # End: followed by delimiter or EOL (prevents --slurp matching --slurpfile)
+  # Use \(-[^[:space:],/]*[,/][[:space:]]*\)\+ to allow multiple preceding options
   elif [[ "$word" =~ ^-- ]]; then
-    search_term="^[[:space:]]*${word}\\([,/=:[[:space:]]\\|$\\)\\|^[[:space:]]*-.*[,/][[:space:]]*${word}\\([,/=:[[:space:]]\\|$\\)"
+    search_term="^[[:space:]]*${word}\\([,/=:[[:space:]]\\|$\\)\\|^[[:space:]]*\\(-[^[:space:],/]*[,/][[:space:]]*\\)\\+${word}\\([,/=:[[:space:]]\\|$\\)"
   fi
   
   echo "$search_term"
