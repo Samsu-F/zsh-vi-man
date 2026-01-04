@@ -40,6 +40,11 @@ jobs:
           zsh test_patterns.zsh
         shell: zsh {0}
       
+      - name: Run neovim pattern tests
+        run: |
+          zsh test_nvim.zsh
+        shell: zsh {0}
+      
       - name: Verify plugin loads
         run: |
           cat > test_load.zsh << 'EOF'

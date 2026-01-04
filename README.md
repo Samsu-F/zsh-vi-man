@@ -166,6 +166,7 @@ echo 'source ~/.zsh-vi-man/zsh-vi-man.plugin.zsh' >> ~/.zshrc
 ### Emacs Mode / Vi Insert Mode
 
 Without leaving insert mode or if using emacs mode:
+
 - **Emacs mode**: Press **`Ctrl-X`** then **`k`**
 - **Vi insert mode**: Press **`Ctrl-K`**
 
@@ -205,7 +206,7 @@ ZVM_MAN_ENABLE_EMACS=false
 ZVM_MAN_ENABLE_INSERT=false
 
 # Use a different pager (default: less)
-ZVM_MAN_PAGER='bat'
+ZVM_MAN_PAGER='nvim'
 ```
 
 ### Troubleshooting
@@ -219,6 +220,7 @@ zvm_man_rebind
 ```
 
 This can happen if:
+
 - Your plugin manager loads plugins before setting up keymaps
 - You call `bindkey -e` or `bindkey -v` after the plugin loads
 - Another plugin resets your keybindings
@@ -233,12 +235,12 @@ zvm_man_rebind
 <details>
 <summary><b>Key Binding Examples</b></summary>
 
-| Key Notation | Description |
-|:-------------|:------------|
-| `^K` | Ctrl-K |
-| `^Xk` | Ctrl-X then k |
-| `^X^K` | Ctrl-X then Ctrl-K |
-| `\ek` | Alt-k (or Escape then k) |
+| Key Notation | Description              |
+| :----------- | :----------------------- |
+| `^K`         | Ctrl-K                   |
+| `^Xk`        | Ctrl-X then k            |
+| `^X^K`       | Ctrl-X then Ctrl-K       |
+| `\ek`        | Alt-k (or Escape then k) |
 
 For special keys, use zsh notation: `^[` for Escape, `^?` for Backspace, etc.
 

@@ -11,7 +11,7 @@
 # ZVM_MAN_KEY: the key to trigger man page lookup in vi normal mode (default: K)
 # ZVM_MAN_KEY_EMACS: the key sequence for emacs mode (default: ^Xk, i.e., Ctrl-X k)
 # ZVM_MAN_KEY_INSERT: the key for vi insert mode (default: ^K, i.e., Ctrl-K)
-# ZVM_MAN_PAGER: the pager to use (default: less)
+# ZVM_MAN_PAGER: the pager to use (default: less, supports nvim/vim)
 # ZVM_MAN_ENABLE_EMACS: enable emacs mode binding (default: true)
 # ZVM_MAN_ENABLE_INSERT: enable vi insert mode binding (default: true)
 
@@ -22,118 +22,42 @@
 : ${ZVM_MAN_ENABLE_EMACS:=true}
 : ${ZVM_MAN_ENABLE_INSERT:=true}
 
+# Get the directory where this script is located
+typeset -g ZVM_LIB_DIR="${${(%):-%x}:A:h}/lib"
+
+# Source modular components
+source "${ZVM_LIB_DIR}/parser.zsh"
+source "${ZVM_LIB_DIR}/pattern.zsh"
+source "${ZVM_LIB_DIR}/pager.zsh"
+source "${ZVM_LIB_DIR}/keybinding.zsh"
+
+# Main widget function - orchestrates the man page lookup
 function zvm-man() {
-  # Get the word at cursor position
-  local left="${LBUFFER##*[[:space:]]}"
-  local right="${RBUFFER%%[[:space:]]*}"
-  local word="${left}${right}"
-  
-  # Find the current command segment (handles pipes: tree | grep -A)
-  # Get everything after the last pipe before cursor
-  local current_segment="${LBUFFER##*|}"
-  # Trim leading whitespace
-  current_segment="${current_segment#"${current_segment%%[![:space:]]*}"}"
-  # Extract the command (first word of segment)
-  local cmd="${current_segment%%[[:space:]]*}"
+  # Parse current context
+  local word=$(zvm_parse_word_at_cursor)
+  local cmd=$(zvm_parse_command)
   
   if [[ -z "$cmd" ]]; then
     zle -M "No command found"
     return 1
   fi
   
-  # Determine the man page to open
-  local man_page="$cmd"
-  local rest="${current_segment#*[[:space:]]}"
-  local potential_subcommand="${rest%%[[:space:]]*}"
+  # Determine the man page to open (may include subcommand)
+  local current_segment=$(zvm_get_current_segment)
+  local man_page=$(zvm_determine_man_page "$cmd" "$current_segment")
   
-  # Check for subcommand man pages (e.g., git-commit, docker-run)
-  if [[ -n "$potential_subcommand" && ! "$potential_subcommand" =~ ^- ]]; then
-    if man -w "${cmd}-${potential_subcommand}" &>/dev/null; then
-      man_page="${cmd}-${potential_subcommand}"
-    fi
-  fi
-  
-  # Build the search pattern for the current word
-  # Patterns match option definitions: lines starting with whitespace then dash
-  # Supports comma-separated (GNU style) and slash-separated (jq style) options
-  local pattern=""
-  if [[ -n "$word" ]]; then
-    # Long option with value: --color=always -> search for --color
-    if [[ "$word" =~ ^--[^=]+= ]]; then
-      local opt="${word%%=*}"
-      pattern="^[[:space:]]*${opt}([,/=:[[:space:]]|$)|^[[:space:]]*-.*[,/][[:space:]]+${opt}([,/=:[[:space:]]|$)"
-    # Combined short options: -rf -> search for -[rf] to find individual options
-    # Also includes fallback for single-dash long options like find's -name, -type
-    elif [[ "$word" =~ ^-[a-zA-Z]{2,}$ ]]; then
-      local chars="${word:1}"
-      # Pattern 1: individual chars (e.g., -r or -f from -rf)
-      # Pattern 2: the full word as-is (e.g., -name for find)
-      pattern="^[[:space:]]*-[${chars}][,/:[:space:]]|^[[:space:]]*-.*[,/][[:space:]]+-[${chars}][,/:[:space:]]|^[[:space:]]*${word}([,/:[:space:]]|$)|^[[:space:]]*-.*[,/][[:space:]]+${word}([,/:[:space:]]|$)"
-    # Single short option: -r -> match at start of option definition line
-    elif [[ "$word" =~ ^-[a-zA-Z]$ ]]; then
-      pattern="^[[:space:]]*${word}[,/:[:space:]]|^[[:space:]]*-.*[,/][[:space:]]+${word}([,/:[:space:]]|$)"
-    # Long option without value: --recursive
-    elif [[ "$word" =~ ^-- ]]; then
-      pattern="^[[:space:]]*${word}([,/=:[[:space:]]|$)|^[[:space:]]*-.*[,/][[:space:]]+${word}([,/=:[[:space:]]|$)"
-    fi
-  fi
-  
-  # Clear screen and open man page
+  # Clear screen and open man page with appropriate pager
   zle -I
   
-  if [[ -n "$pattern" ]]; then
-    man "$man_page" 2>/dev/null | ${ZVM_MAN_PAGER} -p "${pattern}" 2>/dev/null || \
-      man "$man_page" 2>/dev/null | ${ZVM_MAN_PAGER}
-  else
-    man "$man_page" 2>/dev/null || zle -M "No manual entry for ${man_page}"
+  if ! zvm_open_man_page "$man_page" "$word"; then
+    zle -M "No manual entry for ${man_page}"
   fi
   
   zle reset-prompt
 }
 
-# Register the widget and bind the key
+# Register the widget
 zle -N zvm-man
 
-function _zvm_man_bind_key() {
-  # Bind in vi normal mode (always enabled)
-  bindkey -M vicmd "${ZVM_MAN_KEY}" zvm-man 2>/dev/null
-  
-  # Handle emacs mode binding
-  if [[ "${ZVM_MAN_ENABLE_EMACS}" == true ]]; then
-    bindkey -M emacs "${ZVM_MAN_KEY_EMACS}" zvm-man 2>/dev/null
-  else
-    # Remove existing binding if disabled
-    bindkey -M emacs -r "${ZVM_MAN_KEY_EMACS}" 2>/dev/null
-  fi
-  
-  # Handle vi insert mode binding
-  if [[ "${ZVM_MAN_ENABLE_INSERT}" == true ]]; then
-    bindkey -M viins "${ZVM_MAN_KEY_INSERT}" zvm-man 2>/dev/null
-  else
-    # Remove existing binding if disabled
-    bindkey -M viins -r "${ZVM_MAN_KEY_INSERT}" 2>/dev/null
-  fi
-}
-
-# Expose function so users can manually rebind if needed
-# Usage: zvm_man_rebind (if keybindings don't work after sourcing)
-function zvm_man_rebind() {
-  _zvm_man_bind_key
-}
-
-# Support both immediate binding and lazy loading with zsh-vi-mode
-if (( ${+functions[zvm_after_lazy_keybindings]} )); then
-  # zsh-vi-mode is loaded with lazy keybindings, hook into it
-  if [[ -z "${ZVM_LAZY_KEYBINDINGS}" ]] || [[ "${ZVM_LAZY_KEYBINDINGS}" == true ]]; then
-    zvm_after_lazy_keybindings_commands+=(_zvm_man_bind_key)
-  else
-    _zvm_man_bind_key
-  fi
-elif (( ${+functions[zvm_after_init]} )); then
-  # zsh-vi-mode without lazy keybindings
-  zvm_after_init_commands+=(_zvm_man_bind_key)
-else
-  # Standalone or other vi-mode setups - bind immediately
-  _zvm_man_bind_key
-fi
-
+# Setup keybindings
+zvm_setup_keybindings

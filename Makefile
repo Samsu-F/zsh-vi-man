@@ -9,9 +9,13 @@ help: ## Show this help message
 	@echo 'Available targets:'
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
-test: ## Run pattern matching tests
+test: ## Run pattern matching tests (less pager)
 	@echo "Running pattern tests..."
 	@zsh test_patterns.zsh
+
+test-nvim: ## Run neovim pattern tests
+	@echo "Running neovim pattern tests..."
+	@zsh test_nvim.zsh
 
 test-load: ## Test plugin loading
 	@echo "Testing plugin loading..."
@@ -50,7 +54,7 @@ test-modes: ## Test emacs and insert mode support
 	@echo "Testing multi-mode support..."
 	@zsh test_modes.zsh
 
-test-all: test test-load test-keybinding test-config test-modes ## Run all tests
+test-all: test test-nvim test-load test-keybinding test-config test-modes ## Run all tests
 	@echo ""
 	@echo "All tests completed successfully"
 
