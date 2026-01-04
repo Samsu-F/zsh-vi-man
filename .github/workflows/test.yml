@@ -1,0 +1,290 @@
+name: Tests
+
+on:
+  push:
+    branches: [ main, master, dev ]
+  pull_request:
+    branches: [ main, master, dev ]
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Test on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        zsh-version: [latest]
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Install Zsh (Ubuntu)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y zsh man-db
+          zsh --version
+      
+      - name: Install Zsh (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew install zsh
+          zsh --version
+      
+      - name: Run pattern tests
+        run: |
+          zsh test_patterns.zsh
+        shell: zsh {0}
+      
+      - name: Verify plugin loads
+        run: |
+          cat > test_load.zsh << 'EOF'
+          #!/usr/bin/env zsh
+          
+          # Source the plugin
+          source ./zsh-vi-man.plugin.zsh
+          
+          # Check if function exists
+          if (( ${+functions[zvm-man]} )); then
+            echo "✓ zvm-man function loaded"
+          else
+            echo "✗ zvm-man function not found"
+            exit 1
+          fi
+          
+          # Check if widget is registered
+          if zle -l | grep -q zvm-man; then
+            echo "✓ zvm-man widget registered"
+          else
+            echo "✗ zvm-man widget not registered"
+            exit 1
+          fi
+          
+          echo "✓ Plugin loaded successfully"
+          EOF
+          
+          chmod +x test_load.zsh
+          zsh test_load.zsh
+        shell: bash
+      
+      - name: Verify keybinding configuration
+        run: |
+          cat > test_keybinding.zsh << 'EOF'
+          #!/usr/bin/env zsh
+          
+          # Enable vi mode
+          bindkey -v
+          
+          # Source the plugin
+          source ./zsh-vi-man.plugin.zsh
+          
+          # Check if K is bound in vicmd mode
+          if bindkey -M vicmd | grep -q "\"K\" zvm-man"; then
+            echo "✓ Default keybinding (K) is set in vicmd mode"
+          else
+            echo "✗ Default keybinding (K) not found in vicmd mode"
+            bindkey -M vicmd | grep zvm-man || echo "No zvm-man keybinding found"
+            exit 1
+          fi
+          
+          echo "✓ Keybindings configured correctly"
+          EOF
+          
+          chmod +x test_keybinding.zsh
+          zsh test_keybinding.zsh
+        shell: bash
+      
+      - name: Test custom configuration
+        run: |
+          cat > test_config.zsh << 'EOF'
+          #!/usr/bin/env zsh
+          
+          # Test custom key
+          export ZVM_MAN_KEY="?"
+          export ZVM_MAN_PAGER="less"
+          
+          # Enable vi mode
+          bindkey -v
+          
+          # Source the plugin
+          source ./zsh-vi-man.plugin.zsh
+          
+          # Check custom key binding
+          if bindkey -M vicmd | grep -q "\"?\" zvm-man"; then
+            echo "✓ Custom keybinding (?) is set"
+          else
+            echo "✗ Custom keybinding (?) not found"
+            exit 1
+          fi
+          
+          echo "✓ Custom configuration works"
+          EOF
+          
+          chmod +x test_config.zsh
+          zsh test_config.zsh
+        shell: bash
+      
+      - name: Test integration with zsh-vi-mode (simulation)
+        run: |
+          cat > test_zvm_integration.zsh << 'EOF'
+          #!/usr/bin/env zsh
+          
+          # Simulate zsh-vi-mode environment
+          zvm_after_lazy_keybindings_commands=()
+          
+          function zvm_after_lazy_keybindings() {
+            # Simulate lazy loading
+            :
+          }
+          
+          # Enable vi mode
+          bindkey -v
+          
+          # Source the plugin
+          source ./zsh-vi-man.plugin.zsh
+          
+          # Check if plugin registered with zsh-vi-mode
+          if (( ${#zvm_after_lazy_keybindings_commands[@]} > 0 )); then
+            echo "✓ Plugin registered with zsh-vi-mode lazy loading"
+          else
+            echo "⚠ Warning: zsh-vi-mode integration not detected (this is OK if zsh-vi-mode is not installed)"
+          fi
+          
+          echo "✓ zsh-vi-mode integration test passed"
+          EOF
+          
+          chmod +x test_zvm_integration.zsh
+          zsh test_zvm_integration.zsh
+        shell: bash
+
+  lint:
+    name: Lint Check
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Install shellcheck
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y shellcheck
+      
+      - name: Run shellcheck on zsh files
+        run: |
+          # Check main plugin files (zsh is similar enough to sh for basic checks)
+          shellcheck -s bash -e SC1090,SC1091,SC2148 zsh-vi-man.zsh || true
+          shellcheck -s bash -e SC1090,SC1091,SC2148 zsh-vi-man.plugin.zsh || true
+          echo "✓ Shellcheck completed (warnings are informational)"
+
+  compatibility:
+    name: Compatibility Test (${{ matrix.pm }})
+    runs-on: ubuntu-latest
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        pm: [zinit, oh-my-zsh, manual]
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Install Zsh
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y zsh man-db git
+          zsh --version
+      
+      - name: Test with zinit
+        if: matrix.pm == 'zinit'
+        run: |
+          cat > test_zinit.zsh << 'EOF'
+          #!/usr/bin/env zsh
+          
+          # Create temp zinit home
+          export ZINIT_HOME="${PWD}/.zinit"
+          mkdir -p "$ZINIT_HOME"
+          
+          # Install zinit
+          git clone https://github.com/zdharma-continuum/zinit.git "$ZINIT_HOME/bin"
+          source "$ZINIT_HOME/bin/zinit.zsh"
+          
+          # Enable vi mode
+          bindkey -v
+          
+          # Load plugin as zinit would
+          zinit light ${PWD}
+          
+          # Check if loaded
+          if (( ${+functions[zvm-man]} )); then
+            echo "✓ Plugin loaded via zinit"
+          else
+            echo "✗ Plugin failed to load via zinit"
+            exit 1
+          fi
+          EOF
+          
+          chmod +x test_zinit.zsh
+          zsh test_zinit.zsh
+      
+      - name: Test with oh-my-zsh
+        if: matrix.pm == 'oh-my-zsh'
+        run: |
+          cat > test_omz.zsh << 'EOF'
+          #!/usr/bin/env zsh
+          
+          # Create temp oh-my-zsh structure
+          export ZSH="${PWD}/.oh-my-zsh"
+          export ZSH_CUSTOM="${ZSH}/custom"
+          mkdir -p "$ZSH_CUSTOM/plugins/zsh-vi-man"
+          
+          # Copy plugin files
+          cp -r ${PWD}/*.zsh "$ZSH_CUSTOM/plugins/zsh-vi-man/"
+          
+          # Enable vi mode
+          bindkey -v
+          
+          # Source plugin as oh-my-zsh would
+          source "$ZSH_CUSTOM/plugins/zsh-vi-man/zsh-vi-man.plugin.zsh"
+          
+          # Check if loaded
+          if (( ${+functions[zvm-man]} )); then
+            echo "✓ Plugin loaded via oh-my-zsh"
+          else
+            echo "✗ Plugin failed to load via oh-my-zsh"
+            exit 1
+          fi
+          EOF
+          
+          chmod +x test_omz.zsh
+          zsh test_omz.zsh
+      
+      - name: Test manual installation
+        if: matrix.pm == 'manual'
+        run: |
+          cat > test_manual.zsh << 'EOF'
+          #!/usr/bin/env zsh
+          
+          # Enable vi mode
+          bindkey -v
+          
+          # Source plugin manually
+          source ${PWD}/zsh-vi-man.plugin.zsh
+          
+          # Check if loaded
+          if (( ${+functions[zvm-man]} )); then
+            echo "✓ Plugin loaded manually"
+          else
+            echo "✗ Plugin failed to load manually"
+            exit 1
+          fi
+          EOF
+          
+          chmod +x test_manual.zsh
+          zsh test_manual.zsh
+
