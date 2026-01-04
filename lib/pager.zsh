@@ -41,6 +41,39 @@ zvm_open_nvim() {
   return 0
 }
 
+# Open man page with vim
+# Vim doesn't have :Man built-in like nvim, so we need to load man.vim first
+# Input: $1 = man_page, $2 = search_pattern (vim regex, optional)
+# Returns: 0 on success, 1 on failure
+zvm_open_vim() {
+  local man_page="$1"
+  local search_term="$2"
+  
+  # Vim requires loading the man.vim ftplugin first before :Man works
+  # Set MANWIDTH to prevent line wrapping
+  # Use </dev/tty to ensure vim gets proper terminal access from zle widget
+  if [[ -n "$search_term" ]]; then
+    MANWIDTH=999 ${ZVM_MAN_PAGER} \
+      +"runtime ftplugin/man.vim" \
+      +"Man ${man_page}" \
+      +only \
+      +"/${search_term}" </dev/tty || \
+    MANWIDTH=999 ${ZVM_MAN_PAGER} \
+      +"runtime ftplugin/man.vim" \
+      +"Man ${man_page}" \
+      +only </dev/tty || \
+      return 1
+  else
+    MANWIDTH=999 ${ZVM_MAN_PAGER} \
+      +"runtime ftplugin/man.vim" \
+      +"Man ${man_page}" \
+      +only </dev/tty || \
+      return 1
+  fi
+  
+  return 0
+}
+
 # Open man page with less or other traditional pagers
 # Uses the -p flag for pattern search
 # Input: $1 = man_page, $2 = search_pattern (ERE, optional)
@@ -72,10 +105,15 @@ zvm_open_man_page() {
   pager_type=$(zvm_detect_pager_type)
   
   case "$pager_type" in
-    nvim|vim)
+    nvim)
       local nvim_pattern
       nvim_pattern=$(zvm_build_nvim_pattern "$word")
       zvm_open_nvim "$man_page" "$nvim_pattern"
+      ;;
+    vim)
+      local vim_pattern
+      vim_pattern=$(zvm_build_nvim_pattern "$word")
+      zvm_open_vim "$man_page" "$vim_pattern"
       ;;
     less|other)
       local less_pattern
