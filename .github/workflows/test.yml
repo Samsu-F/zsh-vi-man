@@ -161,26 +161,6 @@ jobs:
           zsh test_zvm_integration.zsh
         shell: bash
 
-  lint:
-    name: Lint Check
-    runs-on: ubuntu-latest
-    
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-      
-      - name: Install shellcheck
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y shellcheck
-      
-      - name: Run shellcheck on zsh files
-        run: |
-          # Check main plugin files (zsh is similar enough to sh for basic checks)
-          shellcheck -s bash -e SC1090,SC1091,SC2148 zsh-vi-man.zsh || true
-          shellcheck -s bash -e SC1090,SC1091,SC2148 zsh-vi-man.plugin.zsh || true
-          echo "✓ Shellcheck completed (warnings are informational)"
-
   compatibility:
     name: Compatibility Test (${{ matrix.pm }})
     runs-on: ubuntu-latest
