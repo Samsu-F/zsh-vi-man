@@ -9,8 +9,8 @@ Before creating a bug report:
 3. Use the bug report template
 
 Include:
+
 - Zsh version (`zsh --version`)
-- Man version (`man --version`)
 - Your configuration
 - Steps to reproduce
 - Expected vs actual behavior
@@ -32,7 +32,6 @@ zsh test_patterns.zsh
 ## Code Style
 
 - 2 spaces for indentation
-- Lines under 100 characters
 - Add comments for complex logic
 - Follow existing patterns
 
@@ -69,9 +68,8 @@ assert_matches "$pattern" \
 ## CI/CD
 
 GitHub Actions automatically:
+
 - Runs pattern tests
 - Verifies plugin loads
 - Tests on Ubuntu and macOS
 - Checks compatibility with plugin managers
-- Runs shellcheck
-

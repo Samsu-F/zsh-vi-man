@@ -1,9 +1,9 @@
 ---
 name: Bug Report
 about: Report a bug or unexpected behavior
-title: '[BUG] '
+title: "[BUG] "
 labels: bug
-assignees: ''
+assignees: ""
 ---
 
 ## Description
@@ -31,16 +31,13 @@ What actually happened.
 Please provide the following information:
 
 **Zsh version:**
+
 ```bash
 zsh --version
 ```
 
-**Man version:**
-```bash
-man --version
-```
-
 **Plugin configuration:**
+
 ```bash
 echo "ZVM_MAN_KEY: $ZVM_MAN_KEY"
 echo "ZVM_MAN_PAGER: $ZVM_MAN_PAGER"
@@ -52,13 +49,15 @@ echo "LESS: $LESS"
 **Plugin manager:** (e.g., zinit, oh-my-zsh, manual)
 
 **Other vi-mode plugins:**
+
 - [ ] zsh-vi-mode
-- [ ] Other (please specify): 
+- [ ] Other (please specify):
 
 **Operating System:**
+
 - [ ] macOS (version: )
 - [ ] Linux (distro: )
-- [ ] Other: 
+- [ ] Other:
 
 ## Additional Context
 
@@ -71,4 +70,3 @@ If applicable, share relevant parts of your `.zshrc`:
 ```zsh
 # Your zsh-vi-man configuration
 ```
-

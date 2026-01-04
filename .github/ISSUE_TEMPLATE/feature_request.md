@@ -1,9 +1,9 @@
 ---
 name: Feature Request
 about: Suggest a new feature or enhancement
-title: '[FEATURE] '
+title: "[FEATURE] "
 labels: enhancement
-assignees: ''
+assignees: ""
 ---
 
 ## Feature Description
@@ -25,4 +25,3 @@ Have you considered any alternative solutions or workarounds?
 ## Additional Context
 
 Add any other context, screenshots, or examples about the feature request here.
-

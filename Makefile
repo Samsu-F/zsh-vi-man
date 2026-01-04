@@ -1,4 +1,4 @@
-.PHONY: test test-load test-keybinding test-config test-all clean help
+.PHONY: test test-load test-keybinding test-config test-all check clean help
 
 # Default target
 .DEFAULT_GOAL := help
@@ -50,18 +50,7 @@ test-all: test test-load test-keybinding test-config ## Run all tests
 	@echo ""
 	@echo "All tests completed successfully"
 
-lint: ## Run shellcheck (if available)
-	@if command -v shellcheck >/dev/null 2>&1; then \
-		echo "Running shellcheck..."; \
-		shellcheck -s bash -e SC1090,SC1091,SC2148 zsh-vi-man.zsh || true; \
-		shellcheck -s bash -e SC1090,SC1091,SC2148 zsh-vi-man.plugin.zsh || true; \
-		echo "Lint check completed"; \
-	else \
-		echo "WARNING: shellcheck not installed, skipping lint check"; \
-		echo "  Install with: brew install shellcheck (macOS) or apt-get install shellcheck (Linux)"; \
-	fi
-
-check: test-all lint ## Run all tests and lint checks
+check: test-all ## Run all tests (alias for test-all)
 	@echo ""
 	@echo "All checks passed"
 
