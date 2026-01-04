@@ -1,0 +1,9 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Discussions
+    url: https://github.com/TunaCuma/zsh-vi-man/discussions
+    about: Ask questions or discuss ideas
+  - name: Documentation
+    url: https://github.com/TunaCuma/zsh-vi-man#readme
+    about: Check the README for usage and configuration
+

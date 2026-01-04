@@ -8,6 +8,7 @@ Press `Shift-K` on any command or option to instantly open its man page
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Zsh](https://img.shields.io/badge/Shell-Zsh-green.svg)](https://www.zsh.org/)
+[![Tests](https://github.com/TunaCuma/zsh-vi-man/workflows/Tests/badge.svg)](https://github.com/TunaCuma/zsh-vi-man/actions)
 
 <br>
 
@@ -201,6 +202,18 @@ source /path/to/zsh-vi-man.zsh
 ```
 
 <br>
+
+## Contributing
+
+Contributions are welcome! Please see [CONTRIBUTING.md](.github/CONTRIBUTING.md) for guidelines.
+
+```bash
+# Run tests
+zsh test_patterns.zsh
+
+# Test locally
+source ./zsh-vi-man.plugin.zsh
+```
 
 ## 📄 License
 
