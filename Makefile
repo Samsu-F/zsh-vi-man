@@ -1,4 +1,4 @@
-.PHONY: test test-load test-keybinding test-config test-all check clean help
+.PHONY: test test-load test-keybinding test-config test-modes test-all check clean help
 
 # Default target
 .DEFAULT_GOAL := help
@@ -46,7 +46,11 @@ test-config: ## Test custom configuration
 			exit 1; \
 		fi'
 
-test-all: test test-load test-keybinding test-config ## Run all tests
+test-modes: ## Test emacs and insert mode support
+	@echo "Testing multi-mode support..."
+	@zsh test_modes.zsh
+
+test-all: test test-load test-keybinding test-config test-modes ## Run all tests
 	@echo ""
 	@echo "All tests completed successfully"
 
@@ -56,7 +60,7 @@ check: test-all ## Run all tests (alias for test-all)
 
 clean: ## Clean up temporary files
 	@echo "Cleaning up..."
-	@rm -f test_*.zsh 2>/dev/null || true
+	@rm -f test_load.zsh test_keybinding.zsh test_config.zsh test_zvm_integration.zsh 2>/dev/null || true
 	@echo "Cleanup complete"
 
 install-local: ## Install to local zsh config
@@ -73,15 +77,23 @@ demo: ## Show a quick demo of the plugin
 	@echo "  zsh-vi-man Demo"
 	@echo "==================================="
 	@echo ""
-	@echo "1. Type a command:    ls -la"
-	@echo "2. Press Escape:      (enter vi normal mode)"
-	@echo "3. Move cursor:       to 'ls' or '-la'"
-	@echo "4. Press K:           opens man page"
+	@echo "Vi Normal Mode (default):"
+	@echo "  1. Type a command:    ls -la"
+	@echo "  2. Press Escape:      (enter vi normal mode)"
+	@echo "  3. Move cursor:       to 'ls' or '-la'"
+	@echo "  4. Press K:           opens man page"
 	@echo ""
-	@echo "Try it yourself!"
+	@echo "Emacs Mode:"
+	@echo "  1. Type a command:    grep --color pattern"
+	@echo "  2. Move cursor:       to 'grep' or '--color'"
+	@echo "  3. Press Ctrl-X k:    opens man page"
+	@echo ""
+	@echo "Vi Insert Mode:"
+	@echo "  1. Type a command:    git commit -m"
+	@echo "  2. Press Ctrl-K:      opens man page (no Escape needed!)"
 	@echo ""
 	@echo "To test the plugin interactively:"
 	@echo "  zsh"
 	@echo "  source ./zsh-vi-man.plugin.zsh"
-	@echo "  # Now type commands and press Esc, then K"
+	@echo "  # Try the keybindings above!"
 
