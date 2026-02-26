@@ -84,7 +84,7 @@ zvm_open_less() {
   
   # Always override system MANPAGER
   # This prevents issues when MANPAGER is set to nvim/vim but ZVM_MAN_PAGER is less
-  if [[ -n "$pattern" ]] && man --pager=cat "$man_page" | grep -qE "${pattern}"; then
+  if [[ -n "$pattern" ]] && man --pager=cat "$man_page" 2>/dev/null | grep -qE "${pattern}"; then
     man --pager="${ZVM_MAN_PAGER} -p '${pattern}'" "$man_page" || return 1
   else
     man --pager="${ZVM_MAN_PAGER}" "$man_page" || return 1
