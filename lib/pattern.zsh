@@ -42,6 +42,10 @@ zvm_build_less_pattern() {
     pattern="^[[:space:]]*${word}([,/=:[[:space:]]|$)|^[[:space:]]*(-[^[:space:],/]*[,/][[:space:]]+)+${word}([,/=:[[:space:]]|$)"
   fi
   
+  # By adding this impossible to match prefix that contains an uppercase character,
+  # we force the search to be case sensitive without affecting the results otherwise
+  pattern="Z^|$pattern"
+
   echo "$pattern"
 }
 
