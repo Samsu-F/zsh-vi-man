@@ -12,7 +12,7 @@ zvm_parse_word_at_cursor() {
 # Get the current command segment (handles pipes)
 # Returns the text after the last pipe before cursor
 zvm_get_current_segment() {
-  local segment="${LBUFFER##*|}"
+  local segment="${LBUFFER##*|}${RBUFFER%%[[:space:]]*}"
   # Trim leading whitespace
   segment="${segment#"${segment%%[![:space:]]*}"}"
   echo "$segment"
