@@ -49,8 +49,9 @@ function zvm-man() {
   # Clear screen and open man page with appropriate pager
   zle -I
   
-  if ! zvm_open_man_page "$man_page" "$word"; then
+  if ! man -w "$man_page" &>/dev/null || ! zvm_open_man_page "$man_page" "$word"; then
     zle -M "No manual entry for ${man_page}"
+    return 1
   fi
   
   zle reset-prompt
