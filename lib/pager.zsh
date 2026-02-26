@@ -82,14 +82,14 @@ zvm_open_less() {
   local man_page="$1"
   local pattern="$2"
   
-  # Always pipe through ZVM_MAN_PAGER to override system MANPAGER
+  # Always override system MANPAGER
   # This prevents issues when MANPAGER is set to nvim/vim but ZVM_MAN_PAGER is less
   if [[ -n "$pattern" ]]; then
-    MANPAGER=cat man "$man_page" 2>/dev/null | ${ZVM_MAN_PAGER} -p "${pattern}" 2>/dev/null || \
-      MANPAGER=cat man "$man_page" 2>/dev/null | ${ZVM_MAN_PAGER} || \
+    man --pager="${ZVM_MAN_PAGER} -p '${pattern}'" "$man_page" || \
+      man --pager="${ZVM_MAN_PAGER}" "$man_page" || \
       return 1
   else
-    MANPAGER=cat man "$man_page" 2>/dev/null | ${ZVM_MAN_PAGER} || return 1
+    man --pager="${ZVM_MAN_PAGER}" "$man_page" || return 1
   fi
   
   return 0
