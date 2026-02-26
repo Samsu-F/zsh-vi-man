@@ -5,14 +5,14 @@
 # Uses LBUFFER and RBUFFER which are ZLE special variables
 zvm_parse_word_at_cursor() {
   local left="${LBUFFER##*[[:space:]]}"
-  local right="${RBUFFER%%[[:space:]]*}"
+  local right="${RBUFFER%%[|;[:space:]]*}"
   echo "${left}${right}"
 }
 
 # Get the current command segment (handles pipes)
 # Returns the text after the last pipe before cursor
 zvm_get_current_segment() {
-  local segment="${LBUFFER##*|}"
+  local segment="${LBUFFER##*|}${RBUFFER%%[|;[:space:]]*}"
   # Trim leading whitespace
   segment="${segment#"${segment%%[![:space:]]*}"}"
   echo "$segment"
