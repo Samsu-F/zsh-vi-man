@@ -4,15 +4,18 @@
 # Get the word at the current cursor position
 # Uses LBUFFER and RBUFFER which are ZLE special variables
 zvm_parse_word_at_cursor() {
-  local left="${LBUFFER##*[[:space:]]}"
-  local right="${RBUFFER%%[|;[:space:]]*}"
+  local left="${LBUFFER##*[|&\(\{;[:space:]]}"
+  local right="${RBUFFER%%[|&\)\};[:space:]]*}"
   echo "${left}${right}"
 }
 
 # Get the current command segment (handles pipes)
-# Returns the text after the last pipe before cursor
+# Returns the text after the last pipe, ampersand, semicolon or
+# opening brace/parenthesis before cursor.
 zvm_get_current_segment() {
-  local segment="${LBUFFER##*|}${RBUFFER%%[|;[:space:]]*}"
+  local left="${LBUFFER##*[|&\(\{;]}"
+  local right="${RBUFFER%%[|&\)\};[:space:]]*}"
+  local segment="${left}${right}"
   # Trim leading whitespace
   segment="${segment##[[:space:]]#}"
   echo "$segment"
