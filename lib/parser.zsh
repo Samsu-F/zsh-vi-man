@@ -14,7 +14,7 @@ zvm_parse_word_at_cursor() {
 zvm_get_current_segment() {
   local segment="${LBUFFER##*|}${RBUFFER%%[|;[:space:]]*}"
   # Trim leading whitespace
-  segment="${segment#"${segment%%[![:space:]]*}"}"
+  segment="${segment##[[:space:]]#}"
   echo "$segment"
 }
 
