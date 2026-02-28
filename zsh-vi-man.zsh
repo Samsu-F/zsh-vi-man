@@ -34,8 +34,10 @@ source "${ZVM_LIB_DIR}/keybinding.zsh"
 # Main widget function - orchestrates the man page lookup
 function zvm-man() {
   # Parse current context
-  local word=$(zvm_parse_word_at_cursor)
-  local cmd=$(zvm_parse_command)
+  local current_segment="$(zvm_get_current_segment)"
+  local -a segment_tokens=(${(z)current_segment})
+  local word="${segment_tokens[-1]}"
+  local cmd="${segment_tokens[1]}"
   
   if [[ -z "$cmd" ]]; then
     zle -M "No command found"
@@ -43,7 +45,6 @@ function zvm-man() {
   fi
   
   # Determine the man page to open (may include subcommand)
-  local current_segment=$(zvm_get_current_segment)
   local man_page=$(zvm_determine_man_page "$cmd" "$current_segment")
   
   # Clear screen and open man page with appropriate pager
