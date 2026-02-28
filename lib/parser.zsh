@@ -28,6 +28,16 @@ zvm_token_is_segment_separator() {
   return 1
 }
 
+# returns with status 0 iff $1 is a reserved word in zsh that should be skipped by this plugin.
+# e.g., if you type "if ! test -f", the man page for test should be opened on '-f', instead of
+# searching for '-f' in the if man page, which is not even about the shell keyword 'if'
+zvm_token_is_skipped_resword() {
+  if (( $reswords[(Ie)$1] )) && ! man -w 1 $1 &>/dev/null; then
+    return 0
+  fi
+  return 1
+}
+
 # Returns the command segment of the line $1 at stringpos $2.
 # This function tries to avoid returning segments containing separator tokens and
 # therefore, the returned segment may not necessarily be aroud stringpos.
@@ -46,6 +56,9 @@ zvm_segment_at_stringpos() {
   local first_token_idx=$last_token_idx
   while (( first_token_idx > 1 )) && ! zvm_token_is_segment_separator "${tokens[first_token_idx-1]}"; do
     (( first_token_idx-- )) # previous token also belongs to the segment
+  done
+  while (( first_token_idx < last_token_idx )) && zvm_token_is_skipped_resword "${tokens[first_token_idx]}"; do
+    (( first_token_idx++ )) # current token is not part of the segment
   done
   local segment="${tokens[first_token_idx,last_token_idx]}"
   printf '%s' "$segment" # do not use echo here to prevent escape sequence interpretation
