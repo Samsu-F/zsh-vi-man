@@ -102,6 +102,7 @@ zvm_determine_man_page() {
   local cmd="$1"
   local segment="$2"
   local man_page="$cmd"
+  [[ "$cmd" == '[' ]] && cmd=test
   
   local rest="${segment#*[[:space:]]}"
   local potential_subcommand="${rest%%[[:space:]]*}"
