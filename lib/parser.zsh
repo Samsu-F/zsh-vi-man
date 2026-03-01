@@ -64,6 +64,40 @@ zvm_segment_at_stringpos() {
   printf '%s' "$segment" # do not use echo here to prevent escape sequence interpretation
 }
 
+# in string $1, find the stringpos of the first unmatched closing ')' token.
+# prints -1 iff there is no such token
+# For example:
+# input 'foo)bar'   --> output 4
+# input '(x))bar'   --> output 4
+# input 'echo ")")' --> output 9
+# input 'echo ")"'  --> output -1
+zvm_stringpos_of_closing_parenthesis() {
+  local -i stringpos=1
+  local -i nesting_depth=0
+  local string="$1"
+  while (( stringpos <= ${#string} )); do
+    if [[ "${string[stringpos]}" == [[:space:]] ]]; then
+      (( stringpos++ ))
+      continue
+    fi
+    local -a tokens=(${(z)${string[stringpos,-1]}})
+    local first_token="${tokens[1]}"
+    if [[ "$first_token" == ')' ]] && (( nesting_depth == 0 )); then
+      echo $stringpos
+      return
+    elif [[ "$first_token" == ')' ]]; then
+      (( nesting_depth-- ))
+      (( stringpos++ ))
+    elif [[ "$first_token" == '(' ]]; then
+      (( nesting_depth++ ))
+      (( stringpos++ ))
+    else
+      (( stringpos+=${#first_token} ))
+    fi
+  done
+  echo "-1"
+}
+
 # Based on zvm_segment_at_stringpos but descends into nested subcommands
 zvm_nested_segment_at_stringpos() {
   local string="$1"
@@ -74,19 +108,31 @@ zvm_nested_segment_at_stringpos() {
   local left="${string[1,stringpos]}"
   local -a left_tokens=(${(z)left})
   local last_left_token="${left_tokens[-1]}" # this is not necessarily part of the last segment token!
-  while [[ "$last_left_token" =~ '^("?[^"`$]*\$\()(.*)$' || \
+  local -i skipped_prefix=0
+  [[ "${last_left_token[1]}" == '"' ]] && skipped_prefix=1
+  while [[ "$last_left_token" =~ '^(.{'"$skipped_prefix"'}[^"`$]*\$\().*$' || \
            "$last_left_token" =~ '^(<\()(.*)$' ]] && \
         [[ "$last_segment_token" == "$last_left_token"* ]]; do
-    cutoff=${#match[1]} # the length of the prefix that we want to cut off. match is a special zsh variable
-    string="${last_segment_token[cutoff+1,-1]}"
-    stringpos=$(( ${#last_left_token} - cutoff ))
-    # now update segment, last_left_token, and last_segment_token
-    segment="$(zvm_segment_at_stringpos "$string" $stringpos)"
-    segment_tokens=(${(z)segment})
-    last_segment_token="${segment_tokens[-1]}"
-    left="${string[1,stringpos]}"
-    left_tokens=(${(z)left})
-    last_left_token="${left_tokens[-1]}"
+    local cutoff=${#match[1]} # the length of the prefix that we want to cut off. match is a special zsh variable
+    local remaining_suffix="${last_segment_token[cutoff+1,-1]}" # the part of the last segment token after the opening $( or <(
+    local stringpos_in_rem_suffix=$(( ${#last_left_token} - cutoff ))
+    local pos_closing_parenthesis="$(zvm_stringpos_of_closing_parenthesis "$remaining_suffix")"
+    if (( pos_closing_parenthesis > 0 && pos_closing_parenthesis <= stringpos_in_rem_suffix )); then
+      # if the command substituation found is closed to the left of stringpos
+      skipped_prefix=$(( cutoff + pos_closing_parenthesis ))
+      continue
+    else # if stringpos is within the command substitution found ==> descend into nested command
+      string="${remaining_suffix[1,pos_closing_parenthesis]}" # pos_closing_parenthesis may be -1 if it does not exist ==> until end
+      stringpos=$stringpos_in_rem_suffix
+      segment="$(zvm_segment_at_stringpos "$string" $stringpos)"
+      segment_tokens=(${(z)segment})
+      last_segment_token="${segment_tokens[-1]}"
+      left="${string[1,stringpos]}"
+      left_tokens=(${(z)left})
+      last_left_token="${left_tokens[-1]}"
+      skipped_prefix=0
+      [[ "${last_left_token[1]}" == '"' ]] && skipped_prefix=1
+    fi
   done
   printf '%s' "$segment" # do not use echo here to prevent escape sequence interpretation
 }
