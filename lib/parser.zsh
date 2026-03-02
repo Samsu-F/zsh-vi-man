@@ -109,6 +109,11 @@ zvm_nested_segment_at_stringpos() {
   local left="${string[1,stringpos]}"
   local -a left_tokens=(${(z)left})
   local last_left_token="${left_tokens[-1]}" # this is not necessarily part of the last segment token!
+  if [[ "$last_segment_token" != "$last_left_token"* ]]; then
+    # never descend if we are behind a separator ending the segment, e.g. if cursor is after the pipe in `echo $(ls) |`
+    printf '%s' "$segment" # to prevent escape sequence interpretation, do not use echo here
+    return
+  fi
   if (( skipped_prefix == 0 )) && [[ "$last_left_token" =~ '^(([^$\\`"'"']*('[^']*')*)*\"?)" ]]; then
     skipped_prefix=${#match[1]} # skip until first double quote, first unmatched single quote, or first special character outside of single quotes
   fi
@@ -116,8 +121,7 @@ zvm_nested_segment_at_stringpos() {
     printf '%s' "$segment" # to prevent escape sequence interpretation, do not use echo here
     return
   fi
-  if [[ "$last_segment_token" == "$last_left_token"* ]] && \
-     [[ "$last_left_token" =~ '^(.{'"$skipped_prefix"'}[^"`$\\]*\$\().*$' || \
+  if [[ "$last_left_token" =~ '^(.{'"$skipped_prefix"'}[^"`$\\]*\$\().*$' || \
         "$last_left_token" =~ '^(<\().*$' ]]; then
     local cutoff=${#match[1]} # the length of the prefix that we want to cut off. match is a special zsh variable
     local remaining_suffix="${last_segment_token[cutoff+1,-1]}" # the part of the last segment token after the opening $( or <(
@@ -132,15 +136,13 @@ zvm_nested_segment_at_stringpos() {
       zvm_nested_segment_at_stringpos "$string" $stringpos_in_rem_suffix 0
       return $?
     fi
-  elif [[ "$last_segment_token" == "$last_left_token"* ]] && \
-       { [[ "$last_left_token" =~ '^(.{'"$skipped_prefix"'}[^"`$\\]*\$[^"`\(\\]).*$' ]] || \
-         [[ "$last_left_token" =~ '^(.{'"$skipped_prefix"'}[^"`$\\]*\\.).*$' ]] }; then
+  elif [[ "$last_left_token" =~ '^(.{'"$skipped_prefix"'}[^"`$\\]*\$[^"`\(\\]).*$' ]] || \
+       [[ "$last_left_token" =~ '^(.{'"$skipped_prefix"'}[^"`$\\]*\\.).*$' ]]; then
     # skip parameter expansion or backslash escaped character
     zvm_nested_segment_at_stringpos "$1" $2 ${#match[1]}
     return $?
-  else
-    printf '%s' "$segment" # to prevent escape sequence interpretation, do not use echo here
   fi
+  printf '%s' "$segment" # to prevent escape sequence interpretation, do not use echo here
 }
 
 zvm_get_current_segment() {
