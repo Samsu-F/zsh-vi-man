@@ -61,7 +61,7 @@ zvm_segment_at_stringpos() {
     (( first_token_idx++ )) # current token is not part of the segment
   done
   local segment="${tokens[first_token_idx,last_token_idx]}"
-  printf '%s' "$segment" # do not use echo here to prevent escape sequence interpretation
+  printf '%s' "$segment" # to prevent escape sequence interpretation, do not use echo here
 }
 
 # in string $1, find the stringpos of the first unmatched closing ')' token.
@@ -109,8 +109,12 @@ zvm_nested_segment_at_stringpos() {
   local left="${string[1,stringpos]}"
   local -a left_tokens=(${(z)left})
   local last_left_token="${left_tokens[-1]}" # this is not necessarily part of the last segment token!
-  if (( skipped_prefix == 0 )) && [[ "${last_left_token[1]}" == '"' ]]; then
-    skipped_prefix=1
+  if (( skipped_prefix == 0 )) && [[ "$last_left_token" =~ '^(([^$\\`"'"']*('[^']*')*)*\"?)" ]]; then
+    skipped_prefix=${#match[1]} # skip until first double quote, first unmatched single quote, or first special character outside of single quotes
+  fi
+  if [[ "$last_left_token" =~ '^.{'"$skipped_prefix"'}[^"`$\\'"']*'" ]]; then # if all relevant characters are after an unmatched single quote
+    printf '%s' "$segment" # to prevent escape sequence interpretation, do not use echo here
+    return
   fi
   if [[ "$last_segment_token" == "$last_left_token"* ]] && \
      [[ "$last_left_token" =~ '^(.{'"$skipped_prefix"'}[^"`$\\]*\$\().*$' || \
@@ -135,7 +139,7 @@ zvm_nested_segment_at_stringpos() {
     zvm_nested_segment_at_stringpos "$1" $2 ${#match[1]}
     return $?
   else
-    printf '%s' "$segment" # do not use echo here to prevent escape sequence interpretation
+    printf '%s' "$segment" # to prevent escape sequence interpretation, do not use echo here
   fi
 }
 
