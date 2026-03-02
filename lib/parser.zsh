@@ -113,7 +113,7 @@ zvm_nested_segment_at_stringpos() {
     skipped_prefix=1
   fi
   if [[ "$last_segment_token" == "$last_left_token"* ]] && \
-     [[ "$last_left_token" =~ '^(.{'"$skipped_prefix"'}[^"`$]*\$\().*$' || \
+     [[ "$last_left_token" =~ '^(.{'"$skipped_prefix"'}[^"`$\\]*\$\().*$' || \
         "$last_left_token" =~ '^(<\().*$' ]]; then
     local cutoff=${#match[1]} # the length of the prefix that we want to cut off. match is a special zsh variable
     local remaining_suffix="${last_segment_token[cutoff+1,-1]}" # the part of the last segment token after the opening $( or <(
@@ -128,6 +128,12 @@ zvm_nested_segment_at_stringpos() {
       zvm_nested_segment_at_stringpos "$string" $stringpos_in_rem_suffix 0
       return $?
     fi
+  elif [[ "$last_segment_token" == "$last_left_token"* ]] && \
+       { [[ "$last_left_token" =~ '^(.{'"$skipped_prefix"'}[^"`$\\]*\$[^"`\(\\]).*$' ]] || \
+         [[ "$last_left_token" =~ '^(.{'"$skipped_prefix"'}[^"`$\\]*\\.).*$' ]] }; then
+    # skip parameter expansion or backslash escaped character
+    zvm_nested_segment_at_stringpos "$1" $2 ${#match[1]}
+    return $?
   else
     printf '%s' "$segment" # do not use echo here to prevent escape sequence interpretation
   fi
