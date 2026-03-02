@@ -102,39 +102,35 @@ zvm_stringpos_of_closing_parenthesis() {
 zvm_nested_segment_at_stringpos() {
   local string="$1"
   local stringpos=$2
+  local -i skipped_prefix=${3:-0}
   local segment="$(zvm_segment_at_stringpos "$string" $stringpos)"
   local -a segment_tokens=(${(z)segment})
   local last_segment_token="${segment_tokens[-1]}"
   local left="${string[1,stringpos]}"
   local -a left_tokens=(${(z)left})
   local last_left_token="${left_tokens[-1]}" # this is not necessarily part of the last segment token!
-  local -i skipped_prefix=0
-  [[ "${last_left_token[1]}" == '"' ]] && skipped_prefix=1
-  while [[ "$last_left_token" =~ '^(.{'"$skipped_prefix"'}[^"`$]*\$\().*$' || \
-           "$last_left_token" =~ '^(<\()(.*)$' ]] && \
-        [[ "$last_segment_token" == "$last_left_token"* ]]; do
+  if (( skipped_prefix == 0 )) && [[ "${last_left_token[1]}" == '"' ]]; then
+    skipped_prefix=1
+  fi
+  if [[ "$last_segment_token" == "$last_left_token"* ]] && \
+     [[ "$last_left_token" =~ '^(.{'"$skipped_prefix"'}[^"`$]*\$\().*$' || \
+        "$last_left_token" =~ '^(<\().*$' ]]; then
     local cutoff=${#match[1]} # the length of the prefix that we want to cut off. match is a special zsh variable
     local remaining_suffix="${last_segment_token[cutoff+1,-1]}" # the part of the last segment token after the opening $( or <(
     local stringpos_in_rem_suffix=$(( ${#last_left_token} - cutoff ))
     local pos_closing_parenthesis="$(zvm_stringpos_of_closing_parenthesis "$remaining_suffix")"
     if (( pos_closing_parenthesis > 0 && pos_closing_parenthesis <= stringpos_in_rem_suffix )); then
       # if the command substituation found is closed to the left of stringpos
-      skipped_prefix=$(( cutoff + pos_closing_parenthesis ))
-      continue
+      zvm_nested_segment_at_stringpos "$1" $2 $(( cutoff + pos_closing_parenthesis ))
+      return $?
     else # if stringpos is within the command substitution found ==> descend into nested command
       string="${remaining_suffix[1,pos_closing_parenthesis]}" # pos_closing_parenthesis may be -1 if it does not exist ==> until end
-      stringpos=$stringpos_in_rem_suffix
-      segment="$(zvm_segment_at_stringpos "$string" $stringpos)"
-      segment_tokens=(${(z)segment})
-      last_segment_token="${segment_tokens[-1]}"
-      left="${string[1,stringpos]}"
-      left_tokens=(${(z)left})
-      last_left_token="${left_tokens[-1]}"
-      skipped_prefix=0
-      [[ "${last_left_token[1]}" == '"' ]] && skipped_prefix=1
+      zvm_nested_segment_at_stringpos "$string" $stringpos_in_rem_suffix 0
+      return $?
     fi
-  done
-  printf '%s' "$segment" # do not use echo here to prevent escape sequence interpretation
+  else
+    printf '%s' "$segment" # do not use echo here to prevent escape sequence interpretation
+  fi
 }
 
 zvm_get_current_segment() {
