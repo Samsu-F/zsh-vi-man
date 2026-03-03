@@ -8,12 +8,12 @@ zvm_token_index_at_stringpos(){
   local stringpos="$2"
   local left="${line[1,stringpos]}"
   local right="${line[stringpos+1,-1]}"
-  local right_tokens=(${(z)right})
+  local right_tokens=(${(Z+C+)right})
   local first_right_token="${right_tokens[1]}"
-  local left_tokens=(${(z)left})
+  local left_tokens=(${(Z+C+)left})
   if [[ $left == *[[:space:]] ]] || (( ${#left_tokens} == 0 )); then
     left+="${first_right_token}"
-    left_tokens=(${(z)left})
+    left_tokens=(${(Z+C+)left})
   fi
   echo ${#left_tokens}
 }
@@ -45,7 +45,7 @@ zvm_token_is_skipped_resword() {
 zvm_segment_at_stringpos() {
   local line="$1"
   local stringpos=$2
-  local -a tokens=(${(z)line})
+  local -a tokens=(${(Z+C+)line})
   local last_token_idx=$(zvm_token_index_at_stringpos "$line" $stringpos)
   if zvm_token_is_segment_separator "${tokens[last_token_idx]}" && (( last_token_idx < ${#tokens} )); then
     (( last_token_idx++ )) # use the next segment e.g. if cursor is immediately after a semicolon
@@ -80,7 +80,7 @@ zvm_stringpos_of_closing_parenthesis() {
       (( stringpos++ ))
       continue
     fi
-    local -a tokens=(${(z)${string[stringpos,-1]}})
+    local -a tokens=(${(Z+C+)${string[stringpos,-1]}})
     local first_token="${tokens[1]}"
     if [[ "$first_token" == ')' ]] && (( nesting_depth == 0 )); then
       echo $stringpos
@@ -104,10 +104,10 @@ zvm_nested_segment_at_stringpos() {
   local stringpos=$2
   local -i skipped_prefix=${3:-0}
   local segment="$(zvm_segment_at_stringpos "$string" $stringpos)"
-  local -a segment_tokens=(${(z)segment})
+  local -a segment_tokens=(${(Z+C+)segment})
   local last_segment_token="${segment_tokens[-1]}"
   local left="${string[1,stringpos]}"
-  local -a left_tokens=(${(z)left})
+  local -a left_tokens=(${(Z+C+)left})
   local last_left_token="${left_tokens[-1]}" # this is not necessarily part of the last segment token!
   if [[ "$last_segment_token" != "$last_left_token"* ]]; then
     # never descend if we are behind a separator ending the segment, e.g. if cursor is after the pipe in `echo $(ls) |`

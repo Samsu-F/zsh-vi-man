@@ -35,7 +35,7 @@ source "${ZVM_LIB_DIR}/keybinding.zsh"
 function zvm-man() {
   # Parse current context
   local current_segment="$(zvm_get_current_segment)"
-  local -a segment_tokens=(${(z)current_segment})
+  local -a segment_tokens=(${(Z+C+)current_segment})
   local word="${segment_tokens[-1]}"
   local cmd="${segment_tokens[1]}"
   
