@@ -9,7 +9,7 @@ zvm_token_index_at_stringpos(){
   local left="${line[1,stringpos]}"
   local right="${line[stringpos+1,-1]}"
   local right_tokens=(${(Z+C+)right})
-  local first_right_token="${right_tokens[1]}"
+  local first_right_token="${right_tokens[1]:-}"
   local left_tokens=(${(Z+C+)left})
   if [[ $left == *[[:space:]] ]] || (( ${#left_tokens} == 0 )); then
     left+="${first_right_token}"
@@ -46,6 +46,7 @@ zvm_segment_at_stringpos() {
   local line="$1"
   local stringpos=$2
   local -a tokens=(${(Z+C+)line})
+  (( ${#tokens} == 0 )) && return
   local last_token_idx=$(zvm_token_index_at_stringpos "$line" $stringpos)
   if zvm_token_is_segment_separator "${tokens[last_token_idx]}" && (( last_token_idx < ${#tokens} )); then
     (( last_token_idx++ )) # use the next segment e.g. if cursor is immediately after a semicolon
@@ -105,15 +106,16 @@ zvm_nested_segment_at_stringpos() {
   local -i skipped_prefix=${3:-0}
   local segment="$(zvm_segment_at_stringpos "$string" $stringpos)"
   local -a segment_tokens=(${(Z+C+)segment})
-  local last_segment_token="${segment_tokens[-1]}"
+  local last_segment_token="${segment_tokens[-1]:-}"
   local left="${string[1,stringpos]}"
   local -a left_tokens=(${(Z+C+)left})
-  local last_left_token="${left_tokens[-1]}" # this is not necessarily part of the last segment token!
+  local last_left_token="${left_tokens[-1]:-}" # this is not necessarily part of the last segment token!
   if [[ "$last_segment_token" != "$last_left_token"* ]]; then
     # never descend if we are behind a separator ending the segment, e.g. if cursor is after the pipe in `echo $(ls) |`
     printf '%s' "$segment" # to prevent escape sequence interpretation, do not use echo here
     return
   fi
+  local match mbegin mend # special parameters created by zsh when using [[ =~ ]]; for good style we don't want them to be global
   if (( skipped_prefix == 0 )) && [[ "$last_left_token" =~ '^(([^$\\`"'"']*('[^']*')*)*\"?)" ]]; then
     skipped_prefix=${#match[1]} # skip until first double quote, first unmatched single quote, or first special character outside of single quotes
   fi
