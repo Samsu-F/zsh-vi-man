@@ -76,13 +76,14 @@ Handles options with values
 <tr>
 <td width="50%">
 
-### 🔀 Pipe Support
+### 🔀 Complex Syntax Support
 
-Detects correct command in pipelines
+Detects correct command in pipelines, command substitutions & more
 
 ```
 cat file | grep -i  → opens man grep
-tree | less -N      → opens man less
+if true && ! [ -e   → opens man test at -e
+printf "$(pwd; ls   → opens man ls
 ```
 
 </td>
